@@ -1,0 +1,857 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BreathLog — Asthma & Allergy Tracker</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f7f5f2;
+    --surface: #ffffff;
+    --surface2: #f0ede8;
+    --border: #e2ddd7;
+    --border2: #ccc8c0;
+    --text: #1a1814;
+    --text2: #6b6760;
+    --text3: #9e9b96;
+    --accent: #2d6a4f;
+    --accent-light: #e8f4ee;
+    --accent-text: #1a4a35;
+    --warn: #c1440e;
+    --warn-light: #fdf0eb;
+    --warn-text: #8a2f08;
+    --info: #1e5799;
+    --info-light: #eaf0fb;
+    --info-text: #153d6b;
+    --gold: #a07830;
+    --gold-light: #faf3e8;
+    --purple: #5b3fa0;
+    --purple-light: #f0ecfb;
+    --purple-text: #3d2a70;
+    --radius: 12px;
+    --radius-sm: 8px;
+    --shadow: 0 1px 3px rgba(0,0,0,0.06), 0 4px 16px rgba(0,0,0,0.04);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; font-size: 15px; line-height: 1.6; }
+  .shell { display: flex; min-height: 100vh; }
+
+  /* Sidebar */
+  .sidebar { width: 240px; background: var(--surface); border-right: 1px solid var(--border); display: flex; flex-direction: column; position: fixed; top: 0; left: 0; bottom: 0; z-index: 100; }
+  .logo { padding: 28px 24px 20px; border-bottom: 1px solid var(--border); }
+  .logo-name { font-family: 'DM Serif Display', serif; font-size: 22px; color: var(--text); letter-spacing: -0.3px; }
+  .logo-sub { font-size: 11px; color: var(--text3); letter-spacing: 0.08em; text-transform: uppercase; margin-top: 2px; }
+  .nav { padding: 16px 12px; flex: 1; }
+  .nav-item { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: var(--radius-sm); cursor: pointer; color: var(--text2); font-size: 14px; font-weight: 400; transition: all 0.15s; margin-bottom: 2px; border: none; background: none; width: 100%; text-align: left; font-family: 'DM Sans', sans-serif; }
+  .nav-item:hover { background: var(--surface2); color: var(--text); }
+  .nav-item.active { background: var(--accent-light); color: var(--accent-text); font-weight: 500; }
+  .nav-icon { width: 18px; height: 18px; opacity: 0.7; flex-shrink: 0; }
+  .nav-item.active .nav-icon { opacity: 1; }
+  .sidebar-footer { padding: 16px; border-top: 1px solid var(--border); }
+  .streak-badge { background: var(--gold-light); border: 1px solid #e8d5b0; border-radius: var(--radius-sm); padding: 10px 12px; display: flex; align-items: center; gap: 8px; }
+  .streak-num { font-size: 20px; font-weight: 600; color: var(--gold); }
+  .streak-label { font-size: 12px; color: var(--gold); line-height: 1.3; }
+
+  /* Main */
+  .main { margin-left: 240px; flex: 1; }
+  .topbar { background: var(--surface); border-bottom: 1px solid var(--border); padding: 0 32px; height: 64px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 50; }
+  .topbar-title { font-family: 'DM Serif Display', serif; font-size: 20px; color: var(--text); }
+  .topbar-date { font-size: 13px; color: var(--text3); }
+  .topbar-right { display: flex; gap: 10px; align-items: center; }
+  .top-btn { background: none; border: 1px solid var(--border2); border-radius: var(--radius-sm); padding: 7px 14px; font-size: 13px; font-family: 'DM Sans', sans-serif; color: var(--text2); cursor: pointer; transition: all 0.15s; display: flex; align-items: center; gap: 6px; }
+  .top-btn:hover { background: var(--surface2); color: var(--text); }
+
+  /* Pages */
+  .page { display: none; padding: 28px 32px; max-width: 900px; }
+  .page.active { display: block; }
+
+  /* Cards */
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px 22px; box-shadow: var(--shadow); }
+  .card-title { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text3); margin-bottom: 14px; }
+
+  /* Grid layouts */
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; margin-bottom: 14px; }
+
+  /* Sliders */
+  .scale-hint { display: flex; justify-content: space-between; font-size: 11px; color: var(--text3); margin-bottom: 6px; margin-top: 2px; }
+  .slider-val-display { display: flex; align-items: center; justify-content: center; width: 42px; height: 42px; border-radius: 50%; font-size: 17px; font-weight: 600; margin: 0 auto 6px; transition: all 0.2s; }
+  input[type=range] { -webkit-appearance: none; width: 100%; height: 5px; border-radius: 3px; background: var(--surface2); outline: none; margin: 4px 0; cursor: pointer; }
+  input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 20px; height: 20px; border-radius: 50%; background: var(--surface); border: 2px solid var(--accent); cursor: pointer; box-shadow: 0 1px 4px rgba(0,0,0,0.15); transition: transform 0.1s; }
+  input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.15); }
+
+  /* Section divider inside card */
+  .card-divider { height: 1px; background: var(--border); margin: 16px -22px; }
+
+  /* Field */
+  .field-label { font-size: 12px; color: var(--text2); font-weight: 500; margin-bottom: 6px; }
+  .field-input { width: 100%; padding: 9px 12px; border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: 14px; font-family: 'DM Sans', sans-serif; color: var(--text); background: var(--surface); transition: border-color 0.15s; outline: none; }
+  .field-input:focus { border-color: var(--accent); }
+
+  /* Toggle buttons */
+  .toggle-group { display: flex; gap: 7px; flex-wrap: wrap; }
+  .toggle-opt { padding: 8px 14px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: none; font-size: 13px; font-family: 'DM Sans', sans-serif; color: var(--text2); cursor: pointer; transition: all 0.15s; font-weight: 400; white-space: nowrap; }
+  .toggle-opt:hover { background: var(--surface2); }
+  .toggle-opt.on { background: var(--accent-light); color: var(--accent-text); border-color: var(--accent); font-weight: 500; }
+  .toggle-opt.on-warn { background: var(--warn-light); color: var(--warn-text); border-color: var(--warn); font-weight: 500; }
+  .toggle-opt.on-info { background: var(--info-light); color: var(--info-text); border-color: var(--info); font-weight: 500; }
+  .toggle-opt.on-purple { background: var(--purple-light); color: var(--purple-text); border-color: var(--purple); font-weight: 500; }
+
+  /* Textarea */
+  .journal-area { width: 100%; padding: 12px 14px; border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: 14px; font-family: 'DM Sans', sans-serif; color: var(--text); background: var(--surface); resize: vertical; min-height: 90px; outline: none; line-height: 1.7; transition: border-color 0.15s; }
+  .journal-area:focus { border-color: var(--accent); }
+
+  /* Save button */
+  .save-btn { width: 100%; padding: 14px; background: var(--accent); color: #fff; border: none; border-radius: var(--radius); font-size: 15px; font-weight: 500; font-family: 'DM Sans', sans-serif; cursor: pointer; transition: all 0.15s; margin-top: 4px; letter-spacing: 0.01em; }
+  .save-btn:hover { background: #235a42; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(45,106,79,0.25); }
+  .save-btn:active { transform: translateY(0); }
+
+  /* Stats */
+  .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 22px; }
+  .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px 18px; box-shadow: var(--shadow); }
+  .stat-label { font-size: 11px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.07em; font-weight: 600; margin-bottom: 6px; }
+  .stat-val { font-size: 26px; font-weight: 600; color: var(--text); line-height: 1; }
+  .stat-sub { font-size: 12px; color: var(--text3); margin-top: 4px; }
+
+  /* Table */
+  .table-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow); overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; min-width: 700px; }
+  thead th { padding: 11px 14px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.07em; color: var(--text3); background: var(--surface2); text-align: left; border-bottom: 1px solid var(--border); white-space: nowrap; }
+  tbody tr { border-bottom: 1px solid var(--border); transition: background 0.1s; }
+  tbody tr:last-child { border-bottom: none; }
+  tbody tr:hover { background: var(--surface2); }
+  tbody td { padding: 11px 14px; font-size: 13px; color: var(--text); vertical-align: middle; }
+  .score-badge { display: inline-flex; align-items: center; justify-content: center; width: 30px; height: 30px; border-radius: 50%; font-size: 12px; font-weight: 600; }
+  .score-low { background: var(--accent-light); color: var(--accent-text); }
+  .score-mid { background: var(--gold-light); color: var(--gold); }
+  .score-high { background: var(--warn-light); color: var(--warn-text); }
+  .tag { display: inline-block; padding: 3px 9px; border-radius: 20px; font-size: 11px; font-weight: 500; }
+  .tag-active { background: var(--accent-light); color: var(--accent-text); }
+  .tag-rest { background: var(--surface2); color: var(--text3); }
+  .tag-yes { background: var(--warn-light); color: var(--warn-text); }
+  .tag-no { background: var(--accent-light); color: var(--accent-text); }
+  .narrative-cell { max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text2); font-style: italic; }
+
+  /* AI */
+  .analyze-btn { display: flex; align-items: center; gap: 10px; padding: 13px 22px; background: var(--info-light); color: var(--info-text); border: 1px solid #b8cfe8; border-radius: var(--radius); font-size: 15px; font-weight: 500; font-family: 'DM Sans', sans-serif; cursor: pointer; transition: all 0.15s; margin-bottom: 18px; }
+  .analyze-btn:hover { background: #d8e8f7; transform: translateY(-1px); }
+  .analyze-btn:disabled { opacity: 0.5; cursor: default; transform: none; }
+  .ai-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 28px; box-shadow: var(--shadow); white-space: pre-wrap; font-size: 14px; line-height: 1.9; color: var(--text); }
+  .ai-card.empty { color: var(--text3); font-style: italic; text-align: center; padding: 48px; }
+
+  /* Toast */
+  .toast { position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%) translateY(20px); background: var(--text); color: #fff; padding: 12px 24px; border-radius: 100px; font-size: 14px; font-weight: 500; opacity: 0; transition: all 0.3s; pointer-events: none; z-index: 999; white-space: nowrap; }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  .empty-state { text-align: center; padding: 48px 24px; color: var(--text3); }
+  .empty-state p { font-size: 14px; margin-top: 8px; }
+  .section-heading { font-family: 'DM Serif Display', serif; font-size: 18px; color: var(--text); margin-bottom: 14px; }
+  .mb14 { margin-bottom: 14px; }
+
+  /* Inline slider row */
+  .inline-slider { display: flex; align-items: center; gap: 10px; }
+  .inline-slider input[type=range] { flex: 1; }
+  .inline-val { font-size: 18px; font-weight: 600; min-width: 28px; text-align: center; }
+
+  /* Exposure badge (cat) */
+  .cat-val { display: inline-flex; align-items: center; justify-content: center; width: 42px; height: 42px; border-radius: 50%; font-size: 17px; font-weight: 600; margin: 0 auto 6px; transition: all 0.2s; }
+
+  @media (max-width: 768px) {
+    .sidebar { width: 200px; }
+    .main { margin-left: 200px; }
+    .grid-2, .grid-3 { grid-template-columns: 1fr; }
+    .stats-row { grid-template-columns: 1fr 1fr; }
+    .page { padding: 18px 14px; }
+    .topbar { padding: 0 16px; }
+  }
+  @media (max-width: 560px) {
+    .sidebar { display: none; }
+    .main { margin-left: 0; }
+  }
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <!-- Sidebar -->
+  <nav class="sidebar">
+    <div class="logo">
+      <div class="logo-name">BreathLog</div>
+      <div class="logo-sub">Asthma &amp; Allergy Tracker</div>
+    </div>
+    <div class="nav">
+      <button class="nav-item active" onclick="showPage('log')">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5"/><path d="M17.586 3.414a2 2 0 112.828 2.828L12 14.828 8 16l1.172-4L17.586 3.414z"/></svg>
+        Log Today
+      </button>
+      <button class="nav-item" onclick="showPage('dashboard')">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+        Dashboard
+      </button>
+      <button class="nav-item" onclick="showPage('history')">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/></svg>
+        History
+      </button>
+      <button class="nav-item" onclick="showPage('insights')">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
+        AI Insights
+      </button>
+    </div>
+    <div class="sidebar-footer">
+      <div class="streak-badge">
+        <div class="streak-num" id="streakNum">0</div>
+        <div class="streak-label">day streak<br><span style="font-weight:400;opacity:0.8">keep it up</span></div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Main -->
+  <div class="main">
+    <div class="topbar">
+      <div>
+        <div class="topbar-title" id="pageTitle">Log Today</div>
+        <div class="topbar-date" id="topbarDate"></div>
+      </div>
+      <div class="topbar-right">
+        <button class="top-btn" onclick="exportData()">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7,10 12,15 17,10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Export data
+        </button>
+        <button class="top-btn" onclick="triggerImport()">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7,10 12,15 17,10"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          Import data
+        </button>
+        <input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(event)">
+      </div>
+    </div>
+
+    <!-- LOG PAGE -->
+    <div class="page active" id="page-log">
+
+      <!-- Weather banner -->
+      <div id="weatherBanner" style="display:flex;align-items:center;gap:10px;background:var(--info-light);border:1px solid #b8cfe8;border-radius:var(--radius);padding:12px 16px;margin-bottom:14px;font-size:13px;color:var(--info-text);">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+        <span id="weatherStatus">Fetching your local weather data...</span>
+        <button id="weatherRefreshBtn" onclick="fetchWeather()" style="display:none;margin-left:auto;background:none;border:1px solid currentColor;border-radius:var(--radius-sm);padding:4px 10px;font-size:12px;font-family:'DM Sans',sans-serif;color:inherit;cursor:pointer;opacity:0.8;">Refresh</button>
+      </div>
+
+      <!-- Row 1: Symptoms -->
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title">Nasal Congestion</div>
+          <div class="slider-val-display" id="nasalDisplay" style="background:var(--accent-light);color:var(--accent-text);">1</div>
+          <div class="scale-hint"><span>1 — clear</span><span>10 — severe</span></div>
+          <input type="range" min="1" max="10" value="1" step="1" id="nasalSlider" oninput="updateSlider('nasal',this.value)">
+        </div>
+        <div class="card">
+          <div class="card-title">Breathing / Asthma Difficulty</div>
+          <div class="slider-val-display" id="asthmaDisplay" style="background:var(--accent-light);color:var(--accent-text);">1</div>
+          <div class="scale-hint"><span>1 — easy breathing</span><span>10 — severe</span></div>
+          <input type="range" min="1" max="10" value="1" step="1" id="asthmaSlider" oninput="updateSlider('asthma',this.value)">
+        </div>
+      </div>
+
+      <!-- Row 2: Cat exposure + Sleep -->
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title">Cat Exposure</div>
+          <div class="slider-val-display" id="catDisplay" style="background:var(--purple-light);color:var(--purple-text);">1</div>
+          <div class="scale-hint"><span>1 — minimal contact</span><span>10 — constant contact</span></div>
+          <input type="range" min="1" max="10" value="1" step="1" id="catSlider" oninput="updateCatSlider(this.value)">
+        </div>
+        <div class="card">
+          <div class="card-title">Sleep Quality Last Night</div>
+          <div class="slider-val-display" id="sleepDisplay" style="background:var(--accent-light);color:var(--accent-text);">1</div>
+          <div class="scale-hint"><span>1 — very poor</span><span>10 — excellent</span></div>
+          <input type="range" min="1" max="10" value="1" step="1" id="sleepSlider" oninput="updateSliderGeneric('sleep',this.value,'sleep')">
+        </div>
+      </div>
+
+      <!-- Row 3: Environment -->
+      <div class="card mb14">
+        <div class="card-title">Environment</div>
+        <div class="grid-3" style="margin-bottom:0;">
+          <div>
+            <div class="field-label">Temperature (°F)</div>
+            <input class="field-input" type="number" id="temp" placeholder="e.g. 84">
+          </div>
+          <div>
+            <div class="field-label">Humidity (%)</div>
+            <input class="field-input" type="number" id="humidity" placeholder="e.g. 72">
+          </div>
+          <div>
+            <div class="field-label">Air Quality Index (AQI)</div>
+            <input class="field-input" type="number" id="aqi" placeholder="e.g. 45">
+          </div>
+        </div>
+      </div>
+
+      <!-- Row 4: Pollen + Rescue inhaler -->
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title">Pollen Level</div>
+          <div class="toggle-group">
+            <button class="toggle-opt on" id="pollen-low" onclick="setPollen('low')">Low</button>
+            <button class="toggle-opt" id="pollen-med" onclick="setPollen('medium')">Medium</button>
+            <button class="toggle-opt" id="pollen-high" onclick="setPollen('high')">High</button>
+            <button class="toggle-opt" id="pollen-unknown" onclick="setPollen('unknown')">Unknown</button>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title">Rescue Inhaler Used?</div>
+          <div class="toggle-group" style="margin-bottom:12px;">
+            <button class="toggle-opt" id="inhaler-no" onclick="setInhaler('no')">No</button>
+            <button class="toggle-opt" id="inhaler-yes" onclick="setInhaler('yes')">Yes</button>
+          </div>
+          <div id="inhalerPuffsRow" style="display:none;">
+            <div class="field-label">How many puffs?</div>
+            <input class="field-input" type="number" id="inhalerPuffs" placeholder="e.g. 2" min="1">
+          </div>
+        </div>
+      </div>
+
+      <!-- Row 5: Activity + Indoors/Outdoors -->
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title">Physical Activity</div>
+          <div class="toggle-group">
+            <button class="toggle-opt on" id="btn-active-yes" onclick="setActivity('yes')">Yes, active</button>
+            <button class="toggle-opt" id="btn-active-no" onclick="setActivity('no')">Rest day</button>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title">Time Spent</div>
+          <div class="toggle-group">
+            <button class="toggle-opt on" id="time-indoor" onclick="setTimeSpent('mostly indoor')">Mostly indoor</button>
+            <button class="toggle-opt" id="time-mix" onclick="setTimeSpent('mixed')">Mixed</button>
+            <button class="toggle-opt" id="time-outdoor" onclick="setTimeSpent('mostly outdoor')">Mostly outdoor</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Row 6: Medications + Known exposures -->
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title">Antihistamine / Medications Taken?</div>
+          <div class="toggle-group">
+            <button class="toggle-opt on" id="meds-no" onclick="setMeds('no')">No</button>
+            <button class="toggle-opt" id="meds-yes" onclick="setMeds('yes')">Yes</button>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title">Additional Exposures Today</div>
+          <div class="toggle-group" id="exposureGroup">
+            <button class="toggle-opt" onclick="toggleExposure(this,'cut grass')">Cut grass</button>
+            <button class="toggle-opt" onclick="toggleExposure(this,'smoke')">Smoke</button>
+            <button class="toggle-opt" onclick="toggleExposure(this,'cleaning products')">Cleaning products</button>
+            <button class="toggle-opt" onclick="toggleExposure(this,'perfume/cologne')">Perfume</button>
+            <button class="toggle-opt" onclick="toggleExposure(this,'rain/storm')">Rain/storm</button>
+            <button class="toggle-opt" onclick="toggleExposure(this,'mold')">Mold</button>
+            <button class="toggle-opt" onclick="toggleExposure(this,'none')">None</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Row 7: Symptom timing -->
+      <div class="card mb14">
+        <div class="card-title">When Were Symptoms Worst?</div>
+        <div class="toggle-group">
+          <button class="toggle-opt on" id="timing-none" onclick="setTiming('no symptoms')">No symptoms</button>
+          <button class="toggle-opt" id="timing-morning" onclick="setTiming('morning')">Morning</button>
+          <button class="toggle-opt" id="timing-afternoon" onclick="setTiming('afternoon')">Afternoon</button>
+          <button class="toggle-opt" id="timing-evening" onclick="setTiming('evening')">Evening</button>
+          <button class="toggle-opt" id="timing-night" onclick="setTiming('night')">Night</button>
+          <button class="toggle-opt" id="timing-allday" onclick="setTiming('all day')">All day</button>
+        </div>
+      </div>
+
+      <!-- Row 8: Journal -->
+      <div class="card mb14">
+        <div class="card-title">Daily Journal</div>
+        <textarea class="journal-area" id="narrative" placeholder="How did you feel today? Any triggers, changes, or things that helped? Even a sentence or two goes a long way for your AI analysis..."></textarea>
+      </div>
+
+      <button class="save-btn" onclick="saveEntry()">Save today's entry</button>
+    </div>
+
+    <!-- DASHBOARD PAGE -->
+    <div class="page" id="page-dashboard">
+      <div class="stats-row" id="statsRow">
+        <div class="stat-card"><div class="stat-label">Total entries</div><div class="stat-val" id="dEntries">0</div><div class="stat-sub">days logged</div></div>
+        <div class="stat-card"><div class="stat-label">Avg nasal</div><div class="stat-val" id="dNasal">—</div><div class="stat-sub">out of 10</div></div>
+        <div class="stat-card"><div class="stat-label">Avg asthma</div><div class="stat-val" id="dAsthma">—</div><div class="stat-sub">out of 10</div></div>
+        <div class="stat-card"><div class="stat-label">Inhaler days</div><div class="stat-val" id="dInhaler">—</div><div class="stat-sub">rescue used</div></div>
+      </div>
+      <div class="section-heading">Symptom trend</div>
+      <div class="card" style="margin-bottom:22px;">
+        <canvas id="trendChart" height="180"></canvas>
+      </div>
+      <div class="section-heading">Recent entries</div>
+      <div id="recentList"></div>
+    </div>
+
+    <!-- HISTORY PAGE -->
+    <div class="page" id="page-history">
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Nasal</th>
+              <th>Asthma</th>
+              <th>Cat exp.</th>
+              <th>Sleep</th>
+              <th>Temp</th>
+              <th>Humidity</th>
+              <th>AQI</th>
+              <th>Pollen</th>
+              <th>Inhaler</th>
+              <th>Active</th>
+              <th>Timing</th>
+              <th>Notes</th>
+            </tr>
+          </thead>
+          <tbody id="historyBody"></tbody>
+        </table>
+        <div class="empty-state" id="historyEmpty" style="display:none;">
+          <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="color:var(--text3);margin:0 auto;display:block;"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/></svg>
+          <p>No entries yet. Start logging to build your history.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- INSIGHTS PAGE -->
+    <div class="page" id="page-insights">
+      <button class="analyze-btn" id="analyzeBtn" onclick="runAnalysis()">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
+        Analyze my symptoms with AI
+      </button>
+      <div id="aiOutput">
+        <div class="ai-card empty">Run an analysis to get personalized insights about your triggers, patterns, and a plan to feel better.</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+const DB_KEY = 'breathlog_v2_entries';
+let activityVal = 'yes';
+let pollenVal = 'low';
+let inhalerVal = 'no';
+let medsVal = 'no';
+let timeSpentVal = 'mostly indoor';
+let timingVal = 'no symptoms';
+let exposures = [];
+let trendChart = null;
+
+function getEntries() { try { return JSON.parse(localStorage.getItem(DB_KEY)||'[]'); } catch(e) { return []; } }
+function saveEntries(arr) { localStorage.setItem(DB_KEY, JSON.stringify(arr)); }
+
+function init() {
+  document.getElementById('topbarDate').textContent = new Date().toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+  setInhaler('no');
+  setMeds('no');
+  updateStreak();
+}
+
+function showPage(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-'+name).classList.add('active');
+  const labels = {log:'Log Today',dashboard:'Dashboard',history:'History',insights:'AI Insights'};
+  document.getElementById('pageTitle').textContent = labels[name];
+  const idx = ['log','dashboard','history','insights'].indexOf(name);
+  document.querySelectorAll('.nav-item')[idx].classList.add('active');
+  if (name==='dashboard') renderDashboard();
+  if (name==='history') renderHistory();
+}
+
+function scoreClass(v) {
+  if (v<=3) return 'score-low';
+  if (v<=6) return 'score-mid';
+  return 'score-high';
+}
+
+function updateSlider(type, val) {
+  const v = parseInt(val);
+  const el = document.getElementById(type+'Display');
+  el.textContent = v;
+  if (v<=3) { el.style.background='var(--accent-light)'; el.style.color='var(--accent-text)'; }
+  else if (v<=6) { el.style.background='var(--gold-light)'; el.style.color='var(--gold)'; }
+  else { el.style.background='var(--warn-light)'; el.style.color='var(--warn-text)'; }
+}
+
+function updateSliderGeneric(type, val, mode) {
+  const v = parseInt(val);
+  const el = document.getElementById(type+'Display');
+  el.textContent = v;
+  if (mode==='sleep') {
+    if (v>=7) { el.style.background='var(--accent-light)'; el.style.color='var(--accent-text)'; }
+    else if (v>=4) { el.style.background='var(--gold-light)'; el.style.color='var(--gold)'; }
+    else { el.style.background='var(--warn-light)'; el.style.color='var(--warn-text)'; }
+  }
+}
+
+function updateCatSlider(val) {
+  const v = parseInt(val);
+  const el = document.getElementById('catDisplay');
+  el.textContent = v;
+  if (v<=3) { el.style.background='var(--purple-light)'; el.style.color='var(--purple-text)'; }
+  else if (v<=6) { el.style.background='var(--gold-light)'; el.style.color='var(--gold)'; }
+  else { el.style.background='var(--warn-light)'; el.style.color='var(--warn-text)'; }
+}
+
+function setPollen(val) {
+  pollenVal = val;
+  ['low','med','medium','high','unknown'].forEach(k => {
+    const el = document.getElementById('pollen-'+k);
+    if (el) el.classList.remove('on','on-warn','on-info');
+  });
+  const el = document.getElementById('pollen-'+val);
+  if (!el) return;
+  if (val==='low') el.classList.add('on');
+  else if (val==='medium') { el.classList.add('on-warn'); }
+  else if (val==='high') el.classList.add('on-warn');
+  else el.classList.add('on');
+}
+
+function setInhaler(val) {
+  inhalerVal = val;
+  document.getElementById('inhaler-no').className = 'toggle-opt' + (val==='no'?' on':'');
+  document.getElementById('inhaler-yes').className = 'toggle-opt' + (val==='yes'?' on-warn':'');
+  document.getElementById('inhalerPuffsRow').style.display = val==='yes'?'block':'none';
+}
+
+function setActivity(val) {
+  activityVal = val;
+  document.getElementById('btn-active-yes').className = 'toggle-opt'+(val==='yes'?' on':'');
+  document.getElementById('btn-active-no').className = 'toggle-opt'+(val==='no'?' on':'');
+}
+
+function setTimeSpent(val) {
+  timeSpentVal = val;
+  document.getElementById('time-indoor').className='toggle-opt'+(val==='mostly indoor'?' on':'');
+  document.getElementById('time-mix').className='toggle-opt'+(val==='mixed'?' on':'');
+  document.getElementById('time-outdoor').className='toggle-opt'+(val==='mostly outdoor'?' on':'');
+}
+
+function setMeds(val) {
+  medsVal = val;
+  document.getElementById('meds-no').className = 'toggle-opt'+(val==='no'?' on':'');
+  document.getElementById('meds-yes').className = 'toggle-opt'+(val==='yes'?' on-info':'');
+}
+
+function setTiming(val) {
+  timingVal = val;
+  ['none','morning','afternoon','evening','night','allday'].forEach(k => {
+    const el = document.getElementById('timing-'+k);
+    if (el) el.classList.remove('on','on-warn');
+  });
+  const map = {'no symptoms':'none','morning':'morning','afternoon':'afternoon','evening':'evening','night':'night','all day':'allday'};
+  const el = document.getElementById('timing-'+map[val]);
+  if (el) el.classList.add(val==='no symptoms'?'on':'on-warn');
+}
+
+function toggleExposure(btn, val) {
+  if (val==='none') {
+    exposures = [];
+    document.querySelectorAll('#exposureGroup .toggle-opt').forEach(b => b.classList.remove('on','on-warn'));
+    btn.classList.add('on');
+    return;
+  }
+  document.getElementById('exposureGroup').querySelectorAll('.toggle-opt').forEach(b => { if (b.textContent.trim()==='None') b.classList.remove('on'); });
+  const idx = exposures.indexOf(val);
+  if (idx>-1) { exposures.splice(idx,1); btn.classList.remove('on','on-warn'); }
+  else { exposures.push(val); btn.classList.add('on-warn'); }
+}
+
+function saveEntry() {
+  const entry = {
+    id: Date.now(),
+    date: new Date().toISOString(),
+    nasal: parseInt(document.getElementById('nasalSlider').value),
+    asthma: parseInt(document.getElementById('asthmaSlider').value),
+    catExposure: parseInt(document.getElementById('catSlider').value),
+    sleep: parseInt(document.getElementById('sleepSlider').value),
+    temp: document.getElementById('temp').value||null,
+    humidity: document.getElementById('humidity').value||null,
+    aqi: document.getElementById('aqi').value||null,
+    pollen: pollenVal,
+    inhalerUsed: inhalerVal,
+    inhalerPuffs: inhalerVal==='yes'?(document.getElementById('inhalerPuffs').value||null):null,
+    active: activityVal,
+    timeSpent: timeSpentVal,
+    medsUsed: medsVal,
+    exposures: exposures.slice(),
+    symptomTiming: timingVal,
+    narrative: document.getElementById('narrative').value.trim()
+  };
+  const entries = getEntries();
+  entries.unshift(entry);
+  saveEntries(entries);
+  showToast('Entry saved successfully');
+  resetForm();
+  updateStreak();
+}
+
+function resetForm() {
+  document.getElementById('nasalSlider').value=1; updateSlider('nasal',1);
+  document.getElementById('asthmaSlider').value=1; updateSlider('asthma',1);
+  document.getElementById('catSlider').value=1; updateCatSlider(1);
+  document.getElementById('sleepSlider').value=1; updateSliderGeneric('sleep',1,'sleep');
+  document.getElementById('temp').value='';
+  document.getElementById('humidity').value='';
+  document.getElementById('aqi').value='';
+  document.getElementById('inhalerPuffs').value='';
+  document.getElementById('narrative').value='';
+  exposures=[];
+  document.querySelectorAll('#exposureGroup .toggle-opt').forEach(b=>b.classList.remove('on','on-warn'));
+  setActivity('yes'); setPollen('low'); setInhaler('no'); setMeds('no');
+  setTimeSpent('mostly indoor'); setTiming('no symptoms');
+  fetchWeather();
+}
+
+function renderDashboard() {
+  const entries = getEntries();
+  document.getElementById('dEntries').textContent = entries.length;
+  if (!entries.length) {
+    ['dNasal','dAsthma','dInhaler'].forEach(id => document.getElementById(id).textContent='—');
+    document.getElementById('recentList').innerHTML='<div class="empty-state"><p>No entries yet.</p></div>';
+    return;
+  }
+  document.getElementById('dNasal').textContent = (entries.reduce((a,e)=>a+e.nasal,0)/entries.length).toFixed(1);
+  document.getElementById('dAsthma').textContent = (entries.reduce((a,e)=>a+e.asthma,0)/entries.length).toFixed(1);
+  document.getElementById('dInhaler').textContent = entries.filter(e=>e.inhalerUsed==='yes').length;
+  const recent = entries.slice(0,7).reverse();
+  const labels = recent.map(e=>new Date(e.date).toLocaleDateString('en-US',{month:'short',day:'numeric'}));
+  if (trendChart) trendChart.destroy();
+  trendChart = new Chart(document.getElementById('trendChart'),{
+    type:'line',
+    data:{labels,datasets:[
+      {label:'Nasal',data:recent.map(e=>e.nasal),borderColor:'#1e5799',backgroundColor:'rgba(30,87,153,0.07)',tension:0.4,pointRadius:4,pointBackgroundColor:'#1e5799',fill:true},
+      {label:'Asthma',data:recent.map(e=>e.asthma),borderColor:'#c1440e',backgroundColor:'rgba(193,68,14,0.05)',tension:0.4,pointRadius:4,pointBackgroundColor:'#c1440e',fill:true},
+      {label:'Cat exp.',data:recent.map(e=>e.catExposure||1),borderColor:'#5b3fa0',backgroundColor:'rgba(91,63,160,0.04)',tension:0.4,pointRadius:4,pointBackgroundColor:'#5b3fa0',fill:false,borderDash:[4,3]}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{min:0,max:10,ticks:{stepSize:2,color:'#9e9b96',font:{size:11}},grid:{color:'#f0ede8'}},x:{ticks:{color:'#9e9b96',font:{size:11}},grid:{display:false}}}}
+  });
+  document.getElementById('recentList').innerHTML = entries.slice(0,5).map(e=>{
+    const d=new Date(e.date).toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});
+    return `<div class="card" style="margin-bottom:10px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
+      <div style="min-width:88px;font-size:13px;color:var(--text2);">${d}</div>
+      <span class="score-badge ${scoreClass(e.nasal)}" title="Nasal">${e.nasal}</span>
+      <span class="score-badge ${scoreClass(e.asthma)}" title="Asthma">${e.asthma}</span>
+      <span class="tag ${e.inhalerUsed==='yes'?'tag-yes':'tag-no'}">${e.inhalerUsed==='yes'?'Inhaler used':'No inhaler'}</span>
+      <span class="tag tag-rest" style="background:var(--purple-light);color:var(--purple-text);">Cat: ${e.catExposure||'—'}</span>
+      <div style="font-size:13px;color:var(--text2);font-style:italic;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${e.narrative||'—'}</div>
+    </div>`;
+  }).join('');
+}
+
+function renderHistory() {
+  const entries = getEntries();
+  const body = document.getElementById('historyBody');
+  const empty = document.getElementById('historyEmpty');
+  if (!entries.length) { body.innerHTML=''; empty.style.display='block'; return; }
+  empty.style.display='none';
+  body.innerHTML = entries.map(e=>{
+    const d=new Date(e.date).toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});
+    return `<tr>
+      <td>${d}</td>
+      <td><span class="score-badge ${scoreClass(e.nasal)}">${e.nasal}</span></td>
+      <td><span class="score-badge ${scoreClass(e.asthma)}">${e.asthma}</span></td>
+      <td><span class="score-badge" style="background:var(--purple-light);color:var(--purple-text);">${e.catExposure||'—'}</span></td>
+      <td><span class="score-badge ${e.sleep>=7?'score-low':e.sleep>=4?'score-mid':'score-high'}">${e.sleep||'—'}</span></td>
+      <td>${e.temp?e.temp+'°F':'—'}</td>
+      <td>${e.humidity?e.humidity+'%':'—'}</td>
+      <td>${e.aqi||'—'}</td>
+      <td>${e.pollen||'—'}</td>
+      <td><span class="tag ${e.inhalerUsed==='yes'?'tag-yes':'tag-no'}">${e.inhalerUsed==='yes'?'Yes':'No'}</span></td>
+      <td><span class="tag ${e.active==='yes'?'tag-active':'tag-rest'}">${e.active==='yes'?'Active':'Rest'}</span></td>
+      <td style="font-size:12px;color:var(--text2);">${e.symptomTiming||'—'}</td>
+      <td class="narrative-cell">${e.narrative||'—'}</td>
+    </tr>`;
+  }).join('');
+}
+
+async function runAnalysis() {
+  const entries = getEntries();
+  const btn = document.getElementById('analyzeBtn');
+  const output = document.getElementById('aiOutput');
+  if (!entries.length) { output.innerHTML='<div class="ai-card empty">Please log at least one entry before running an analysis.</div>'; return; }
+  btn.disabled=true;
+  btn.innerHTML='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg> Analyzing your data...';
+  output.innerHTML='<div class="ai-card empty" style="font-style:normal;color:var(--text2);">Reading your entries and building your personalized report...</div>';
+
+  const summary = entries.slice(0,30).map(e=>{
+    const d=new Date(e.date).toLocaleDateString('en-US',{month:'short',day:'numeric'});
+    return `${d}: nasal=${e.nasal}/10, asthma=${e.asthma}/10, cat_exposure=${e.catExposure||'?'}/10, sleep=${e.sleep||'?'}/10, temp=${e.temp||'?'}°F, humidity=${e.humidity||'?'}%, aqi=${e.aqi||'?'}, pollen=${e.pollen||'?'}, inhaler=${e.inhalerUsed}, puffs=${e.inhalerPuffs||0}, active=${e.active}, time_spent=${e.timeSpent}, meds=${e.medsUsed}, exposures=[${(e.exposures||[]).join(',')||'none'}], symptom_timing=${e.symptomTiming}. Notes: "${e.narrative||'none'}"`;
+  }).join('\n');
+
+  const prompt = `You are a compassionate, knowledgeable health tracking assistant (not a doctor). The user lives in South Florida (West Perrine area) and has asthma and allergies. They own cats and log their daily cat exposure (1=minimal, 10=constant). All symptom scales are 1–10 where 1=no issues and 10=worst possible. Sleep is 1–10 where 1=terrible and 10=excellent.\n\nHere are their logged entries:\n\n${summary}\n\nPlease provide a detailed, warm, and actionable report with these clearly labeled sections:\n\n1. OVERALL ASSESSMENT — current severity level (mild/moderate/severe) with explanation\n2. TOP TRIGGERS — what patterns most strongly correlate with bad days (cat exposure, humidity, pollen, AQI, activity, timing, exposures, sleep, etc.)\n3. CAT EXPOSURE ANALYSIS — specific analysis of how their cat exposure level correlates with symptoms\n4. WHAT HELPS — conditions and behaviors that correlate with better days\n5. RESCUE INHALER USAGE — any patterns or concerns about inhaler use\n6. PLAN OF ATTACK — 4–6 specific, practical steps tailored to South Florida and their lifestyle\n7. WHEN TO SEE YOUR DOCTOR — any red flags worth discussing with a physician\n\nBe specific, data-driven, warm, and encouraging. Always remind them you are not a medical professional.`;
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1400,messages:[{role:'user',content:prompt}]})
+    });
+    const data = await res.json();
+    const text = data.content?.map(b=>b.text||'').join('')||'Unable to generate analysis.';
+    output.innerHTML=`<div class="ai-card">${text.replace(/\n/g,'<br>')}</div>`;
+  } catch(err) {
+    output.innerHTML='<div class="ai-card empty">Connection error. Please try again.</div>';
+  }
+  btn.disabled=false;
+  btn.innerHTML='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg> Analyze my symptoms with AI';
+}
+
+function updateStreak() {
+  const entries = getEntries();
+  if (!entries.length) { document.getElementById('streakNum').textContent='0'; return; }
+  let streak=1;
+  const sorted=entries.slice().sort((a,b)=>new Date(b.date)-new Date(a.date));
+  const today=new Date(); today.setHours(0,0,0,0);
+  const first=new Date(sorted[0].date); first.setHours(0,0,0,0);
+  if (Math.round((today-first)/(1000*60*60*24))>1) { document.getElementById('streakNum').textContent='0'; return; }
+  for (let i=1;i<sorted.length;i++) {
+    const prev=new Date(sorted[i-1].date); prev.setHours(0,0,0,0);
+    const curr=new Date(sorted[i].date); curr.setHours(0,0,0,0);
+    if (Math.round((prev-curr)/(1000*60*60*24))===1) streak++;
+    else break;
+  }
+  document.getElementById('streakNum').textContent=streak;
+}
+
+function exportData() {
+  const entries=getEntries();
+  if (!entries.length) { showToast('No data to export yet'); return; }
+  const blob=new Blob([JSON.stringify(entries,null,2)],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url; a.download='breathlog_data.json'; a.click();
+  URL.revokeObjectURL(url);
+  showToast('Data exported successfully');
+}
+
+function triggerImport() { document.getElementById('importFile').click(); }
+
+function importData(event) {
+  const file=event.target.files[0];
+  if (!file) return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    try {
+      const imported=JSON.parse(e.target.result);
+      if (!Array.isArray(imported)) { showToast('Invalid file format'); return; }
+      const existing=getEntries();
+      const existingIds=new Set(existing.map(e=>e.id));
+      const merged=[...imported.filter(e=>!existingIds.has(e.id)),...existing];
+      merged.sort((a,b)=>new Date(b.date)-new Date(a.date));
+      saveEntries(merged);
+      showToast(`Imported ${imported.length} entries successfully`);
+      updateStreak();
+    } catch(err) { showToast('Error reading file'); }
+  };
+  reader.readAsText(file);
+  event.target.value='';
+}
+
+function showToast(msg) {
+  const t=document.getElementById('toast');
+  t.textContent=msg;
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2500);
+}
+
+// ── WEATHER AUTO-FILL ─────────────────────────────────────────
+const DEFAULT_LAT = 25.5994, DEFAULT_LON = -80.3505;
+
+async function fetchWeather() {
+  setWeatherBanner('info', 'Fetching your local weather data...');
+  document.getElementById('weatherRefreshBtn').style.display = 'none';
+  try {
+    const {lat, lon} = await getCoords();
+    const [wx, aq] = await Promise.allSettled([fetchWx(lat,lon), fetchAQ(lat,lon)]);
+    const filled = [];
+    if (wx.status==='fulfilled' && wx.value) {
+      document.getElementById('temp').value = Math.round(wx.value.tempF);
+      document.getElementById('humidity').value = Math.round(wx.value.humidity);
+      filled.push(`${Math.round(wx.value.tempF)}°F`, `${Math.round(wx.value.humidity)}% humidity`);
+    }
+    if (aq.status==='fulfilled' && aq.value !== null) {
+      document.getElementById('aqi').value = Math.round(aq.value);
+      filled.push(`AQI ${Math.round(aq.value)}`);
+    }
+    if (filled.length) setWeatherBanner('success', `Live data loaded: ${filled.join(' · ')} — edit any value if needed.`);
+    else setWeatherBanner('error', 'Could not load weather. Please enter values manually.');
+  } catch(e) {
+    setWeatherBanner('error', 'Location unavailable. Using West Perrine defaults.');
+    tryDefaults();
+  }
+  document.getElementById('weatherRefreshBtn').style.display = 'inline-block';
+}
+
+function getCoords() {
+  return new Promise(resolve => {
+    if (!navigator.geolocation) { resolve({lat:DEFAULT_LAT,lon:DEFAULT_LON}); return; }
+    navigator.geolocation.getCurrentPosition(
+      p => resolve({lat:p.coords.latitude, lon:p.coords.longitude}),
+      () => resolve({lat:DEFAULT_LAT, lon:DEFAULT_LON}),
+      {timeout:6000}
+    );
+  });
+}
+
+async function fetchWx(lat,lon) {
+  const r = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m&temperature_unit=fahrenheit&timezone=auto`);
+  if (!r.ok) return null;
+  const d = await r.json();
+  return {tempF: d.current.temperature_2m, humidity: d.current.relative_humidity_2m};
+}
+
+async function fetchAQ(lat,lon) {
+  const r = await fetch(`https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${lat}&longitude=${lon}&current=us_aqi&timezone=auto`);
+  if (!r.ok) return null;
+  const d = await r.json();
+  return d.current?.us_aqi ?? null;
+}
+
+async function tryDefaults() {
+  try {
+    const [wx, aq] = await Promise.allSettled([fetchWx(DEFAULT_LAT,DEFAULT_LON), fetchAQ(DEFAULT_LAT,DEFAULT_LON)]);
+    const filled = [];
+    if (wx.status==='fulfilled' && wx.value) {
+      document.getElementById('temp').value = Math.round(wx.value.tempF);
+      document.getElementById('humidity').value = Math.round(wx.value.humidity);
+      filled.push(`${Math.round(wx.value.tempF)}°F`, `${Math.round(wx.value.humidity)}% humidity`);
+    }
+    if (aq.status==='fulfilled' && aq.value !== null) {
+      document.getElementById('aqi').value = Math.round(aq.value);
+      filled.push(`AQI ${Math.round(aq.value)}`);
+    }
+    if (filled.length) setWeatherBanner('success', `West Perrine defaults: ${filled.join(' · ')}`);
+  } catch(e) {}
+}
+
+function setWeatherBanner(type, msg) {
+  const b = document.getElementById('weatherBanner');
+  const colors = {
+    info:  {bg:'var(--info-light)',  border:'#b8cfe8', color:'var(--info-text)'},
+    success:{bg:'var(--accent-light)',border:'#a8d4bc', color:'var(--accent-text)'},
+    error: {bg:'var(--warn-light)',  border:'#e8b8a0', color:'var(--warn-text)'}
+  };
+  const c = colors[type] || colors.info;
+  b.style.background = c.bg; b.style.borderColor = c.border; b.style.color = c.color;
+  document.getElementById('weatherStatus').textContent = msg;
+}
+
+init();
+fetchWeather();
+</script>
+</body>
+</html>
